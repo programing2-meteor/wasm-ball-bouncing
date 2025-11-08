@@ -1,0 +1,17 @@
+# WASM 빌드 결과물
+physics.js
+physics.wasm
+
+# 에디터 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 파일
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log

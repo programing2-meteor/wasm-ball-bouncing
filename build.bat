@@ -5,6 +5,15 @@ echo WASM Ball Bouncing Physics Engine Build
 echo ========================================
 echo.
 
+REM Emscripten 환경 설정
+set EMSDK_PATH=C:\Users\kazma\Desktop\schcool\soongsil\emsdk
+if exist "%EMSDK_PATH%\emsdk_env.bat" (
+    echo Emscripten 환경 설정 중...
+    call "%EMSDK_PATH%\emsdk_env.bat" >nul 2>&1
+    echo 완료!
+    echo.
+)
+
 REM Emscripten이 설치되어 있는지 확인
 where emcc >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
@@ -23,19 +32,19 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [1/3] C++ 코드를 WASM으로 컴파일 중...
-emcc physics.cpp -o physics.js ^
-    -s WASM=1 ^
-    -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] ^
-    -s ALLOW_MEMORY_GROWTH=1 ^
-    -s MODULARIZE=0 ^
-    -O3
+echo (최적화 중이라 약 5-10초 소요됩니다...)
+call emcc physics.cpp -o physics.js -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=0 -O3
+set COMPILE_RESULT=%ERRORLEVEL%
+echo 컴파일 종료 (결과 코드: %COMPILE_RESULT%)
 
-if %ERRORLEVEL% NEQ 0 (
+if %COMPILE_RESULT% NEQ 0 (
+    echo.
     echo [ERROR] 컴파일 실패!
     pause
     exit /b 1
 )
 
+echo.
 echo [2/3] 빌드 완료!
 echo.
 echo 생성된 파일:

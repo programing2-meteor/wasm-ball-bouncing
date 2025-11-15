@@ -105,22 +105,25 @@ extern "C" {
                     b2.x += nx * overlap * (b1.mass / totalMass);
                     b2.y += ny * overlap * (b1.mass / totalMass);
                     
-                    // 상대 속도
+                    // 상대 속도 계산
                     float dvx = b2.vx - b1.vx;
                     float dvy = b2.vy - b1.vy;
                     float dvn = dvx * nx + dvy * ny;
                     
                     // 이미 멀어지고 있으면 무시
-                    if (dvn < 0) continue;
+                    if (dvn > 0) continue;
                     
-                    // 충돌 임펄스 계산
-                    float impulse = 2.0f * dvn / totalMass;
+                    // 충돌 임펄스 계산 (올바른 물리 공식)
+                    float restitution = 0.7f;  // 반발 계수 (0~1, 1은 완전 탄성 충돌)
+                    float invMassSum = (1.0f / b1.mass) + (1.0f / b2.mass);
+                    float j = -(1.0f + restitution) * dvn / invMassSum;
                     
-                    // 속도 업데이트
-                    b1.vx += impulse * b2.mass * nx;
-                    b1.vy += impulse * b2.mass * ny;
-                    b2.vx -= impulse * b1.mass * nx;
-                    b2.vy -= impulse * b1.mass * ny;
+                    // 속도 업데이트 (감쇠 적용)
+                    float ballDamping = 0.9f;  // 공끼리 충돌 시 에너지 손실
+                    b1.vx = (b1.vx - j * nx / b1.mass) * ballDamping;
+                    b1.vy = (b1.vy - j * ny / b1.mass) * ballDamping;
+                    b2.vx = (b2.vx + j * nx / b2.mass) * ballDamping;
+                    b2.vy = (b2.vy + j * ny / b2.mass) * ballDamping;
                 }
             }
         }

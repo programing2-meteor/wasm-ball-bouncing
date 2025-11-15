@@ -6,6 +6,18 @@ Write-Host "WASM Ball Bouncing Physics Engine Build" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Emscripten 환경 설정
+$emsdkPath = "C:\Users\kazma\Desktop\schcool\soongsil\emsdk"
+$emsdkEnv = Join-Path $emsdkPath "emsdk_env.bat"
+
+if (Test-Path $emsdkEnv) {
+    & cmd /c "`"$emsdkEnv`" >nul 2>&1 && set" | ForEach-Object {
+        if ($_ -match '^([^=]+)=(.*)$') {
+            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+        }
+    }
+}
+
 # Emscripten 확인
 Write-Host "Emscripten 확인 중..." -ForegroundColor Yellow
 $emccPath = Get-Command emcc -ErrorAction SilentlyContinue

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
 echo WASM Ball Bouncing Physics Engine Build
 echo ========================================
@@ -47,8 +48,10 @@ echo.
 echo   python -m http.server 8000
 echo   또는
 echo   npx http-server -p 8000
+echo   또는 라이브 서버를 킨 후
+echo   localhost:5500 접속해서 보기
 echo.
-echo 그 다음 브라우저에서 http://localhost:8000 을 열어주세요.
+echo 그 다음 브라우저에서 http://localhost:8000 or http://localhost:5500 을 열어주세요.
 echo.
 
 pause

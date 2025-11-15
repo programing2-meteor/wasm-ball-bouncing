@@ -1,4 +1,5 @@
 # WASM Ball Bouncing Physics Engine Build Script (PowerShell)
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "WASM Ball Bouncing Physics Engine Build" -ForegroundColor Cyan
@@ -6,7 +7,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Emscripten 확인
-Write-Host "[1/3] Emscripten 확인 중..." -ForegroundColor Yellow
+Write-Host "Emscripten 확인 중..." -ForegroundColor Yellow
 $emccPath = Get-Command emcc -ErrorAction SilentlyContinue
 if (-not $emccPath) {
     Write-Host "[ERROR] Emscripten을 찾을 수 없습니다." -ForegroundColor Red
@@ -27,7 +28,7 @@ Write-Host "✓ Emscripten 발견: $($emccPath.Source)" -ForegroundColor Green
 Write-Host ""
 
 # 컴파일
-Write-Host "[2/3] C++ 코드를 WASM으로 컴파일 중..." -ForegroundColor Yellow
+Write-Host "[1/3] C++ 코드를 WASM으로 컴파일 중..." -ForegroundColor Yellow
 $arguments = @(
     "physics.cpp",
     "-o", "physics.js",
@@ -46,7 +47,9 @@ try {
         Write-Host ""
         
         # 생성된 파일 확인
-        Write-Host "[3/3] 생성된 파일:" -ForegroundColor Yellow
+        Write-Host "[2/3] 빌드 완료!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "생성된 파일:" -ForegroundColor Yellow
         if (Test-Path "physics.js") {
             $jsSize = (Get-Item "physics.js").Length
             Write-Host "  ✓ physics.js ($([math]::Round($jsSize/1KB, 2)) KB)" -ForegroundColor Green
@@ -61,7 +64,7 @@ try {
         Write-Host "빌드 완료!" -ForegroundColor Green
         Write-Host "========================================" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "로컬 서버를 시작하려면:" -ForegroundColor Yellow
+        Write-Host "[3/3] 로컬 서버를 시작하려면:" -ForegroundColor Yellow
         Write-Host "  python -m http.server 8000" -ForegroundColor White
         Write-Host "  또는" -ForegroundColor White
         Write-Host "  npx http-server -p 8000" -ForegroundColor White

@@ -3,8 +3,11 @@ const canvasWidth = 800;
 const canvasHeight = 600;
 let gravityEnabled = true;
 let colors = [];
+let currentGravityX = 0;
+let currentGravityY = 0.5;
 
 function setup() {
+    frameRate(60);  // 60fps로 안정적인 물리 계산
     let canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent('canvas-container');
     
@@ -86,13 +89,23 @@ function draw() {
         text(i + 1, x, y);
     }
     
-    // FPS 표시
+    // FPS 및 정보 표시
     fill(0);
     textAlign(LEFT, TOP);
     textSize(14);
     text(`FPS: ${Math.round(frameRate())}`, 10, 10);
     text(`공 개수: ${ballCount}`, 10, 30);
-    text(`중력: ${gravityEnabled ? 'ON' : 'OFF'}`, 10, 50);
+    
+    // 중력 방향 표시
+    let gravityDir = '↓ 아래';  // 기본
+    if (currentGravityX < 0) gravityDir = '← 왼쪽';
+    else if (currentGravityX > 0) gravityDir = '→ 오른쪽';
+    else if (currentGravityY < 0) gravityDir = '↑ 위';
+    else if (currentGravityY > 0) gravityDir = '↓ 아래';
+    else gravityDir = '⏸ 없음';
+    
+    text(`중력 방향: ${gravityDir}`, 10, 50);
+    text('방향키로 중력 조절 | R: 리셋', 10, 70);
 }
 
 function mousePressed() {
@@ -145,9 +158,49 @@ function toggleGravity() {
 function keyPressed() {
     if (key === ' ') {
         addRandomBall();
+        return false;  // 스페이스바 스크롤 방지
     } else if (key === 'c' || key === 'C') {
         clearAllBalls();
     } else if (key === 'g' || key === 'G') {
         toggleGravity();
+    } else if (keyCode === UP_ARROW) {
+        // 위쪽 방향키: 중력을 위로
+        if (typeof Module !== 'undefined' && Module._setGravityVector) {
+            currentGravityX = 0;
+            currentGravityY = -0.5;
+            Module._setGravityVector(currentGravityX, currentGravityY);
+        }
+        return false;  // 방향키 기본 동작(스크롤) 방지
+    } else if (keyCode === DOWN_ARROW) {
+        // 아래쪽 방향키: 중력을 아래로 (기본)
+        if (typeof Module !== 'undefined' && Module._setGravityVector) {
+            currentGravityX = 0;
+            currentGravityY = 0.5;
+            Module._setGravityVector(currentGravityX, currentGravityY);
+        }
+        return false;  // 방향키 기본 동작(스크롤) 방지
+    } else if (keyCode === LEFT_ARROW) {
+        // 왼쪽 방향키: 중력을 왼쪽으로
+        if (typeof Module !== 'undefined' && Module._setGravityVector) {
+            currentGravityX = -0.5;
+            currentGravityY = 0;
+            Module._setGravityVector(currentGravityX, currentGravityY);
+        }
+        return false;  // 방향키 기본 동작(스크롤) 방지
+    } else if (keyCode === RIGHT_ARROW) {
+        // 오른쪽 방향키: 중력을 오른쪽으로
+        if (typeof Module !== 'undefined' && Module._setGravityVector) {
+            currentGravityX = 0.5;
+            currentGravityY = 0;
+            Module._setGravityVector(currentGravityX, currentGravityY);
+        }
+        return false;  // 방향키 기본 동작(스크롤) 방지
+    } else if (key === 'r' || key === 'R') {
+        // R키: 중력 리셋 (아래로)
+        if (typeof Module !== 'undefined' && Module._setGravityVector) {
+            currentGravityX = 0;
+            currentGravityY = 0.5;
+            Module._setGravityVector(currentGravityX, currentGravityY);
+        }
     }
 }

@@ -12,7 +12,8 @@ struct Ball {
 
 // 전역 변수
 std::vector<Ball> balls;
-float gravity = 0.5f;
+float gravityX = 0.0f;  // X축 중력
+float gravityY = 0.5f;  // Y축 중력
 float damping = 0.95f;  // 에너지 손실 계수
 float canvasWidth = 800.0f;
 float canvasHeight = 600.0f;
@@ -39,10 +40,17 @@ extern "C" {
         canvasHeight = height;
     }
 
-    // 중력 설정
+    // 중력 설정 (Y축만)
     EMSCRIPTEN_KEEPALIVE
     void setGravity(float g) {
-        gravity = g;
+        gravityY = g;
+    }
+    
+    // 중력 벡터 설정 (X, Y축 모두)
+    EMSCRIPTEN_KEEPALIVE
+    void setGravityVector(float gx, float gy) {
+        gravityX = gx;
+        gravityY = gy;
     }
 
     // 물리 업데이트
@@ -50,7 +58,8 @@ extern "C" {
     void updatePhysics() {
         for (auto& ball : balls) {
             // 중력 적용
-            ball.vy += gravity;
+            ball.vx += gravityX;
+            ball.vy += gravityY;
             
             // 위치 업데이트
             ball.x += ball.vx;
@@ -116,14 +125,14 @@ extern "C" {
                     // 충돌 임펄스 계산 (올바른 물리 공식)
                     float restitution = 0.7f;  // 반발 계수 (0~1, 1은 완전 탄성 충돌)
                     float invMassSum = (1.0f / b1.mass) + (1.0f / b2.mass);
-                    float j = -(1.0f + restitution) * dvn / invMassSum;
+                    float impulse = -(1.0f + restitution) * dvn / invMassSum;
                     
                     // 속도 업데이트 (감쇠 적용)
                     float ballDamping = 0.9f;  // 공끼리 충돌 시 에너지 손실
-                    b1.vx = (b1.vx - j * nx / b1.mass) * ballDamping;
-                    b1.vy = (b1.vy - j * ny / b1.mass) * ballDamping;
-                    b2.vx = (b2.vx + j * nx / b2.mass) * ballDamping;
-                    b2.vy = (b2.vy + j * ny / b2.mass) * ballDamping;
+                    b1.vx = (b1.vx - impulse * nx / b1.mass) * ballDamping;
+                    b1.vy = (b1.vy - impulse * ny / b1.mass) * ballDamping;
+                    b2.vx = (b2.vx + impulse * nx / b2.mass) * ballDamping;
+                    b2.vy = (b2.vy + impulse * ny / b2.mass) * ballDamping;
                 }
             }
         }

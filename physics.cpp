@@ -12,10 +12,11 @@ struct Ball {
 
 // 전역 변수
 std::vector<Ball> balls;
-float gravity = 0.5f;
+float gravity = 500.0f;  // 픽셀/초^2 단위로 변경
 float damping = 0.95f;  // 에너지 손실 계수
 float canvasWidth = 800.0f;
 float canvasHeight = 600.0f;
+float lastTime = 0.0f;  // 이전 프레임 시간
 
 // 공 추가
 extern "C" {
@@ -45,16 +46,24 @@ extern "C" {
         gravity = g;
     }
 
-    // 물리 업데이트
+    // 물리 업데이트 (deltaTime 사용)
     EMSCRIPTEN_KEEPALIVE
-    void updatePhysics() {
+    void updatePhysics(float currentTime) {
+        float deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        
+        // 첫 프레임이거나 비정상적인 deltaTime 처리
+        if (deltaTime <= 0 || deltaTime > 0.1f) {
+            deltaTime = 1.0f / 60.0f;  // 60fps 기준 기본값
+        }
+        
         for (auto& ball : balls) {
-            // 중력 적용
-            ball.vy += gravity;
+            // 중력 적용 (가속도 * 시간)
+            ball.vy += gravity * deltaTime;
             
-            // 위치 업데이트
-            ball.x += ball.vx;
-            ball.y += ball.vy;
+            // 위치 업데이트 (속도 * 시간)
+            ball.x += ball.vx * deltaTime;
+            ball.y += ball.vy * deltaTime;
             
             // 벽 충돌 체크 (좌우)
             if (ball.x - ball.radius < 0) {

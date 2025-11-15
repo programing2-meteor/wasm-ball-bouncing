@@ -41,8 +41,8 @@ function draw() {
         return;
     }
     
-    // 물리 업데이트
-    Module._updatePhysics();
+    // 물리 업데이트 (현재 시간을 초 단위로 전달)
+    Module._updatePhysics(millis() / 1000.0);
     
     // 공 그리기
     const ballCount = Module._getBallCount();
@@ -109,8 +109,8 @@ function addBallAtPosition(x, y) {
     }
     
     const radius = random(15, 35);
-    const vx = random(-5, 5);
-    const vy = random(-2, 2);
+    const vx = random(-10, 10);  // 픽셀/초 단위로 조정
+    const vy = random(-25, 25);  // 픽셀/초 단위로 조정
     
     Module._addBall(x, y, vx, vy, radius);
 }
@@ -137,7 +137,7 @@ function clearAllBalls() {
 function toggleGravity() {
     if (typeof Module !== 'undefined' && Module._setGravity) {
         gravityEnabled = !gravityEnabled;
-        Module._setGravity(gravityEnabled ? 0.5 : 0);
+        Module._setGravity(gravityEnabled ? 500.0 : 0);  // 픽셀/초^2 단위로 조정
     }
 }
 

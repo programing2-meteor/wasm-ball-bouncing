@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성능 비교: WASM vs JavaScript</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 2em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .performance-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-box h3 {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .wasm-stat .stat-value {
+            color: #4ecca3;
+        }
+        
+        .js-stat .stat-value {
+            color: #ff6b6b;
+        }
+        
+        .winner {
+            background: rgba(78, 204, 163, 0.2);
+            border-color: rgba(78, 204, 163, 0.5);
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel h2 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+        
+        .panel.wasm h2 {
+            color: #4ecca3;
+        }
+        
+        .panel.js h2 {
+            color: #ff6b6b;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 700px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-container {
+            height: 150px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            gap: 2px;
+        }
+        
+        .bar {
+            flex: 1;
+            background: linear-gradient(to top, #4ecca3, #2ecc71);
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: height 0.3s ease;
+        }
+        
+        @media (max-width: 1200px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ 공 튀기기 물리 엔진 성능 비교</h1>
+    
+    <div class="performance-panel">
+        <div class="stats-container">
+            <div class="stat-box wasm-stat" id="wasm-fps-box">
+                <h3>WASM (C++)</h3>
+                <div class="stat-value" id="wasm-fps">--</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            
+            <div class="stat-box js-stat" id="js-fps-box">
+                <h3>JavaScript</h3>
+                <div class="stat-value" id="js-fps">--</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>프레임 시간 비교</h3>
+                <div class="stat-value" id="frame-time-diff">--</div>
+                <div class="stat-label">ms 차이</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>성능 향상률</h3>
+                <div class="stat-value" id="performance-gain">--</div>
+                <div class="stat-label">WASM vs JS</div>
+            </div>
+            
+            <div class="stat-box wasm-stat">
+                <h3>WASM 렌더링</h3>
+                <div class="stat-value" id="wasm-render-time">--</div>
+                <div class="stat-label">ms/frame</div>
+            </div>
+            
+            <div class="stat-box js-stat">
+                <h3>JS 렌더링</h3>
+                <div class="stat-value" id="js-render-time">--</div>
+                <div class="stat-label">ms/frame</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart" id="fps-chart"></div>
+        </div>
+    </div>
+    
+    <div class="info">
+        <p><strong>💡 테스트 방법:</strong> 아래 버튼으로 양쪽 화면에 동시에 공을 추가하고 성능 차이를 확인하세요.</p>
+        <p>방향키로 중력 방향을 바꿀 수 있습니다. | R: 중력 리셋 | C: 공 전체 제거 | G: 중력 끄기/켜기</p>
+        <p><strong>⌨️ 단축키:</strong> Ctrl/Cmd+A (공 1개 추가) | Ctrl/Cmd+Q (공 5개 추가) | Ctrl/Cmd+D (모두 지우기)</p>
+        <div style="margin-top: 15px;">
+            <button onclick="addBallToBoth()" style="background: #4ecca3; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">양쪽에 공 1개 추가</button>
+            <button onclick="addMultipleBallsToBoth()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">양쪽에 공 5개 추가</button>
+            <button onclick="clearBothScreens()" style="background: #95a5a6; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">양쪽 모두 지우기</button>
+        </div>
+    </div>
+    
+    <div class="comparison-grid">
+        <div class="panel wasm">
+            <h2>🚀 WASM (C++ compiled)</h2>
+            <iframe src="index.html" id="wasm-frame"></iframe>
+        </div>
+        
+        <div class="panel js">
+            <h2>📜 Pure JavaScript</h2>
+            <iframe src="ballBouncingP5js/index.html" id="js-frame"></iframe>
+        </div>
+    </div>
+    
+    <script>
+        const wasmFrame = document.getElementById('wasm-frame');
+        const jsFrame = document.getElementById('js-frame');
+        
+        let wasmFPS = 0;
+        let jsFPS = 0;
+        let fpsHistory = [];
+        const MAX_HISTORY = 60;
+        
+        // 누적 프레임 시간 추적
+        let wasmFrameTimeTotal = 0;
+        let jsFrameTimeTotal = 0;
+        let frameCount = 0;
+        
+        // FPS 차트 초기화
+        for (let i = 0; i < MAX_HISTORY; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            document.getElementById('fps-chart').appendChild(bar);
+        }
+        
+        function updateStats() {
+            try {
+                // WASM iframe에서 FPS 가져오기
+                const wasmWindow = wasmFrame.contentWindow;
+                if (wasmWindow && wasmWindow.frameRate) {
+                    wasmFPS = Math.round(wasmWindow.frameRate());
+                }
+                
+                // JavaScript iframe에서 FPS 가져오기
+                const jsWindow = jsFrame.contentWindow;
+                if (jsWindow && jsWindow.frameRate) {
+                    jsFPS = Math.round(jsWindow.frameRate());
+                }
+                
+                // UI 업데이트
+                document.getElementById('wasm-fps').textContent = wasmFPS;
+                document.getElementById('js-fps').textContent = jsFPS;
+                
+                // 프레임 시간 차이 계산 (ms)
+                const wasmFrameTime = wasmFPS > 0 ? (1000 / wasmFPS) : 0;
+                const jsFrameTime = jsFPS > 0 ? (1000 / jsFPS) : 0;
+                
+                // 누적 계산
+                if (wasmFrameTime > 0 && jsFrameTime > 0) {
+                    wasmFrameTimeTotal += wasmFrameTime;
+                    jsFrameTimeTotal += jsFrameTime;
+                    frameCount++;
+                }
+                
+                // 평균 프레임 시간 계산
+                const avgWasmFrameTime = frameCount > 0 ? (wasmFrameTimeTotal / frameCount) : 0;
+                const avgJsFrameTime = frameCount > 0 ? (jsFrameTimeTotal / frameCount) : 0;
+                const timeDiff = Math.abs(avgJsFrameTime - avgWasmFrameTime).toFixed(2);
+                
+                document.getElementById('frame-time-diff').textContent = timeDiff;
+                
+                // 렌더링 시간 표시 (누적 평균)
+                document.getElementById('wasm-render-time').textContent = avgWasmFrameTime.toFixed(2);
+                document.getElementById('js-render-time').textContent = avgJsFrameTime.toFixed(2);
+                
+                // 성능 향상률 계산
+                if (jsFPS > 0 && wasmFPS > 0) {
+                    const gain = ((wasmFPS / jsFPS - 1) * 100).toFixed(1);
+                    const gainElement = document.getElementById('performance-gain');
+                    if (gain > 0) {
+                        gainElement.textContent = `+${gain}%`;
+                        gainElement.style.color = '#4ecca3';
+                    } else {
+                        gainElement.textContent = `${gain}%`;
+                        gainElement.style.color = '#ff6b6b';
+                    }
+                } else {
+                    document.getElementById('performance-gain').textContent = '--';
+                }
+                
+                // 승자 하이라이트
+                const wasmBox = document.getElementById('wasm-fps-box');
+                const jsBox = document.getElementById('js-fps-box');
+                wasmBox.classList.remove('winner');
+                jsBox.classList.remove('winner');
+                
+                if (wasmFPS > jsFPS && wasmFPS > 0) {
+                    wasmBox.classList.add('winner');
+                } else if (jsFPS > wasmFPS && jsFPS > 0) {
+                    jsBox.classList.add('winner');
+                }
+                
+                // FPS 히스토리 업데이트
+                fpsHistory.push({ wasm: wasmFPS, js: jsFPS });
+                if (fpsHistory.length > MAX_HISTORY) {
+                    fpsHistory.shift();
+                }
+                
+                // 차트 업데이트
+                updateChart();
+                
+            } catch (e) {
+                console.log('Stats update error:', e);
+            }
+        }
+        
+        function updateChart() {
+            const bars = document.querySelectorAll('.bar');
+            const maxFPS = 60;
+            
+            fpsHistory.forEach((data, index) => {
+                if (bars[index]) {
+                    const avgFPS = (data.wasm + data.js) / 2;
+                    const height = (avgFPS / maxFPS) * 100;
+                    bars[index].style.height = `${Math.min(height, 100)}%`;
+                    
+                    // 색상 그라디언트 (FPS에 따라)
+                    if (avgFPS >= 55) {
+                        bars[index].style.background = 'linear-gradient(to top, #4ecca3, #2ecc71)';
+                    } else if (avgFPS >= 40) {
+                        bars[index].style.background = 'linear-gradient(to top, #f39c12, #f1c40f)';
+                    } else {
+                        bars[index].style.background = 'linear-gradient(to top, #e74c3c, #ff6b6b)';
+                    }
+                }
+            });
+        }
+        
+        // 1초마다 통계 업데이트
+        setInterval(updateStats, 1000);
+        
+        // 페이지 로드 후 초기 업데이트
+        setTimeout(() => {
+            updateStats();
+        }, 2000);
+        
+        // 양쪽 화면에 동시에 공 추가
+        function addBallToBoth() {
+            try {
+                const wasmWindow = wasmFrame.contentWindow;
+                const jsWindow = jsFrame.contentWindow;
+                
+                if (wasmWindow && wasmWindow.addRandomBall) {
+                    wasmWindow.addRandomBall();
+                }
+                if (jsWindow && jsWindow.addRandomBall) {
+                    jsWindow.addRandomBall();
+                }
+            } catch (e) {
+                console.log('Error adding ball:', e);
+            }
+        }
+        
+        function addMultipleBallsToBoth() {
+            try {
+                const wasmWindow = wasmFrame.contentWindow;
+                const jsWindow = jsFrame.contentWindow;
+                
+                if (wasmWindow && wasmWindow.addMultipleBalls) {
+                    wasmWindow.addMultipleBalls();
+                }
+                if (jsWindow && jsWindow.addMultipleBalls) {
+                    jsWindow.addMultipleBalls();
+                }
+            } catch (e) {
+                console.log('Error adding multiple balls:', e);
+            }
+        }
+        
+        function clearBothScreens() {
+            try {
+                const wasmWindow = wasmFrame.contentWindow;
+                const jsWindow = jsFrame.contentWindow;
+                
+                if (wasmWindow && wasmWindow.clearAllBalls) {
+                    wasmWindow.clearAllBalls();
+                }
+                if (jsWindow && jsWindow.clearAllBalls) {
+                    jsWindow.clearAllBalls();
+                }
+            } catch (e) {
+                console.log('Error clearing balls:', e);
+            }
+        }
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + A: 공 1개 추가
+            if (e.key === 'a') {
+                e.preventDefault();
+                addBallToBoth();
+            }
+            // Ctrl/Cmd + Q: 공 5개 추가
+            else if (e.key === 'q') {
+                e.preventDefault();
+                addMultipleBallsToBoth();
+            }
+            // Ctrl/Cmd + D: 모두 지우기
+            else if (e.key === 'd') {
+                e.preventDefault();
+                clearBothScreens();
+            }
+        });
+    </script>
+</body>
+</html>

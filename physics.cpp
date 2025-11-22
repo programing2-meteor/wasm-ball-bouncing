@@ -4,66 +4,74 @@
 
 // Ball 구조체 정의
 struct Ball {
-    float x, y;        // 위치
-    float vx, vy;      // 속도
-    float radius;      // 반지름
-    float mass;        // 질량
+    float x, y;        // 위치 (미터)
+    float vx, vy;      // 속도 (미터/초)
+    float radius;      // 반지름 (미터)
+    float mass;        // 질량 (kg)
 };
+
+// 물리 상수
+const float PIXELS_PER_METER = 100.0f;  // 화면 스케일: 100 픽셀 = 1 미터
+const float GRAVITY = 9.8f;              // 중력 가속도 (m/s²)
+const float DT = 1.0f / 60.0f;           // 시간 간격 (초) - 60fps 기준
 
 // 전역 변수
 std::vector<Ball> balls;
-float gravityX = 0.0f;  // X축 중력
-float gravityY = 0.5f;  // Y축 중력
-float damping = 0.95f;  // 에너지 손실 계수
-float canvasWidth = 800.0f;
-float canvasHeight = 600.0f;
+float gravityX = 0.0f;          // X축 중력 (m/s²)
+float gravityY = GRAVITY;       // Y축 중력 (m/s²)
+float damping = 0.95f;          // 에너지 손실 계수
+float canvasWidth = 8.0f;       // 캔버스 너비 (미터) - 800px = 8m
+float canvasHeight = 6.0f;      // 캔버스 높이 (미터) - 600px = 6m
 
-// 공 추가
+// 공 추가 (픽셀 좌표를 받아서 미터로 변환)
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
-    int addBall(float x, float y, float vx, float vy, float radius) {
+    int addBall(float x_px, float y_px, float vx_px, float vy_px, float radius_px) {
         Ball ball;
-        ball.x = x;
-        ball.y = y;
-        ball.vx = vx;
-        ball.vy = vy;
-        ball.radius = radius;
-        ball.mass = radius * radius * 3.14159f;  // 질량은 반지름의 제곱에 비례
+        // 픽셀 -> 미터 변환
+        ball.x = x_px / PIXELS_PER_METER;
+        ball.y = y_px / PIXELS_PER_METER;
+        ball.vx = vx_px / PIXELS_PER_METER * 60.0f;  // 픽셀/프레임 -> 미터/초 변환 (60fps 가정)
+        ball.vy = vy_px / PIXELS_PER_METER * 60.0f;
+        ball.radius = radius_px / PIXELS_PER_METER;
+        // 질량 = 밀도 * 부피, 공의 밀도를 1000 kg/m³로 가정 (물과 비슷)
+        float volume = (4.0f / 3.0f) * 3.14159f * ball.radius * ball.radius * ball.radius;
+        ball.mass = 1000.0f * volume;
         balls.push_back(ball);
         return balls.size() - 1;
     }
 
-    // 캔버스 크기 설정
+    // 캔버스 크기 설정 (픽셀 -> 미터 변환)
     EMSCRIPTEN_KEEPALIVE
-    void setCanvasSize(float width, float height) {
-        canvasWidth = width;
-        canvasHeight = height;
+    void setCanvasSize(float width_px, float height_px) {
+        canvasWidth = width_px / PIXELS_PER_METER;
+        canvasHeight = height_px / PIXELS_PER_METER;
     }
 
-    // 중력 설정 (Y축만)
+    // 중력 설정 (Y축만) - m/s² 단위
     EMSCRIPTEN_KEEPALIVE
     void setGravity(float g) {
-        gravityY = g;
+        gravityY = g;  // 기본값: 9.8 m/s²
     }
     
-    // 중력 벡터 설정 (X, Y축 모두)
+    // 중력 벡터 설정 (X, Y축 모두) - m/s² 단위
     EMSCRIPTEN_KEEPALIVE
     void setGravityVector(float gx, float gy) {
         gravityX = gx;
         gravityY = gy;
     }
 
-    // 물리 업데이트
+    // 물리 업데이트 (실제 물리 단위 사용)
     EMSCRIPTEN_KEEPALIVE
     void updatePhysics() {
         for (auto& ball : balls) {
-            // 중력 적용
-            ball.vx += gravityX;
-            ball.vy += gravityY;
+            // 중력 가속도 적용 (a = g, v = v + a*dt)
+            ball.vx += gravityX * DT;
+            ball.vy += gravityY * DT;
             
-            // 위치 업데이트
-            ball.x += ball.vx;
-            ball.y += ball.vy;
+            // 위치 업데이트 (x = x + v*dt)
+            ball.x += ball.vx * DT;
+            ball.y += ball.vy * DT;
             
             // 벽 충돌 체크 (좌우)
             if (ball.x - ball.radius < 0) {
@@ -82,8 +90,8 @@ extern "C" {
                 ball.y = canvasHeight - ball.radius;
                 ball.vy = -ball.vy * damping;
                 
-                // 바닥에 거의 정지한 경우
-                if (fabs(ball.vy) < 0.5f) {
+                // 바닥에 거의 정지한 경우 (속도 0.05 m/s 이하)
+                if (fabs(ball.vy) < 0.05f) {
                     ball.vy = 0;
                 }
             }
@@ -144,11 +152,11 @@ extern "C" {
         return balls.size();
     }
 
-    // 공 위치 가져오기
+    // 공 위치 가져오기 (미터 -> 픽셀 변환)
     EMSCRIPTEN_KEEPALIVE
     float getBallX(int index) {
         if (index >= 0 && index < balls.size()) {
-            return balls[index].x;
+            return balls[index].x * PIXELS_PER_METER;
         }
         return 0;
     }
@@ -156,7 +164,7 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     float getBallY(int index) {
         if (index >= 0 && index < balls.size()) {
-            return balls[index].y;
+            return balls[index].y * PIXELS_PER_METER;
         }
         return 0;
     }
@@ -164,7 +172,7 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     float getBallRadius(int index) {
         if (index >= 0 && index < balls.size()) {
-            return balls[index].radius;
+            return balls[index].radius * PIXELS_PER_METER;
         }
         return 0;
     }

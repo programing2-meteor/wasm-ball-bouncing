@@ -4,7 +4,7 @@ const canvasHeight = 600;
 let gravityEnabled = true;
 let colors = [];
 let currentGravityX = 0;
-let currentGravityY = 0.5;
+let currentGravityY = 9.8;  // 실제 중력 가속도 (m/s²)
 
 function setup() {
     frameRate(60);  // 60fps로 안정적인 물리 계산
@@ -150,7 +150,7 @@ function clearAllBalls() {
 function toggleGravity() {
     if (typeof Module !== 'undefined' && Module._setGravity) {
         gravityEnabled = !gravityEnabled;
-        Module._setGravity(gravityEnabled ? 0.5 : 0);
+        Module._setGravity(gravityEnabled ? 9.8 : 0);
     }
 }
 
@@ -167,7 +167,7 @@ function keyPressed() {
         // 위쪽 방향키: 중력을 위로
         if (typeof Module !== 'undefined' && Module._setGravityVector) {
             currentGravityX = 0;
-            currentGravityY = -0.5;
+            currentGravityY = -9.8;  // 실제 중력 가속도 (m/s²)
             Module._setGravityVector(currentGravityX, currentGravityY);
         }
         return false;  // 방향키 기본 동작(스크롤) 방지
@@ -175,14 +175,14 @@ function keyPressed() {
         // 아래쪽 방향키: 중력을 아래로 (기본)
         if (typeof Module !== 'undefined' && Module._setGravityVector) {
             currentGravityX = 0;
-            currentGravityY = 0.5;
+            currentGravityY = 9.8;  // 실제 중력 가속도 (m/s²)
             Module._setGravityVector(currentGravityX, currentGravityY);
         }
         return false;  // 방향키 기본 동작(스크롤) 방지
     } else if (keyCode === LEFT_ARROW) {
         // 왼쪽 방향키: 중력을 왼쪽으로
         if (typeof Module !== 'undefined' && Module._setGravityVector) {
-            currentGravityX = -0.5;
+            currentGravityX = -9.8;  // 실제 중력 가속도 (m/s²)
             currentGravityY = 0;
             Module._setGravityVector(currentGravityX, currentGravityY);
         }
@@ -190,7 +190,7 @@ function keyPressed() {
     } else if (keyCode === RIGHT_ARROW) {
         // 오른쪽 방향키: 중력을 오른쪽으로
         if (typeof Module !== 'undefined' && Module._setGravityVector) {
-            currentGravityX = 0.5;
+            currentGravityX = 9.8;  // 실제 중력 가속도 (m/s²)
             currentGravityY = 0;
             Module._setGravityVector(currentGravityX, currentGravityY);
         }
@@ -199,7 +199,7 @@ function keyPressed() {
         // R키: 중력 리셋 (아래로)
         if (typeof Module !== 'undefined' && Module._setGravityVector) {
             currentGravityX = 0;
-            currentGravityY = 0.5;
+            currentGravityY = 9.8;  // 실제 중력 가속도 (m/s²)
             Module._setGravityVector(currentGravityX, currentGravityY);
         }
     }

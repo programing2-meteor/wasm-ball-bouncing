@@ -96,16 +96,27 @@ function draw() {
     text(`FPS: ${Math.round(frameRate())}`, 10, 10);
     text(`공 개수: ${ballCount}`, 10, 30);
     
-    // 중력 방향 표시
-    let gravityDir = '↓ 아래';  // 기본
-    if (currentGravityX < 0) gravityDir = '← 왼쪽';
-    else if (currentGravityX > 0) gravityDir = '→ 오른쪽';
-    else if (currentGravityY < 0) gravityDir = '↑ 위';
-    else if (currentGravityY > 0) gravityDir = '↓ 아래';
-    else gravityDir = '⏸ 없음';
+    // 중력 상태 표시
+    const isGravityOn = currentGravityX !== 0 || currentGravityY !== 0;
+    const gravityStatus = isGravityOn ? 'ON' : 'OFF';
+    const statusColor = isGravityOn ? color(34, 139, 34) : color(220, 20, 60);
     
-    text(`중력 방향: ${gravityDir}`, 10, 50);
-    text('방향키로 중력 조절 | R: 리셋', 10, 70);
+    fill(statusColor);
+    text(`중력: ${gravityStatus}`, 10, 50);
+    
+    // 중력 방향 표시 (중력이 켜져있을 때만)
+    fill(0);
+    if (isGravityOn) {
+        let gravityDir = '↓ 아래';  // 기본
+        if (currentGravityX < 0) gravityDir = '← 왼쪽';
+        else if (currentGravityX > 0) gravityDir = '→ 오른쪽';
+        else if (currentGravityY < 0) gravityDir = '↑ 위';
+        else if (currentGravityY > 0) gravityDir = '↓ 아래';
+        
+        text(`중력 방향: ${gravityDir}`, 10, 70);
+    }
+    
+    text('G: 중력 ON/OFF | 방향키: 중력 방향 | R: 리셋', 10, 90);
 }
 
 function mousePressed() {
@@ -148,9 +159,18 @@ function clearAllBalls() {
 }
 
 function toggleGravity() {
-    if (typeof Module !== 'undefined' && Module._setGravity) {
+    if (typeof Module !== 'undefined' && Module._setGravityVector) {
         gravityEnabled = !gravityEnabled;
-        Module._setGravity(gravityEnabled ? 9.8 : 0);
+        if (gravityEnabled) {
+            // 중력을 켤 때는 기본값(아래 방향)으로 설정
+            currentGravityX = 0;
+            currentGravityY = 9.8;
+        } else {
+            // 중력을 끌 때는 0으로 설정
+            currentGravityX = 0;
+            currentGravityY = 0;
+        }
+        Module._setGravityVector(currentGravityX, currentGravityY);
     }
 }
 

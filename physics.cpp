@@ -80,15 +80,19 @@ void handleCollision(Ball& b1, Ball& b2) {
         float nx = dx / distance;
         float ny = dy / distance;
         
-        // 겹침 해소 (강도를 50%로 줄여 부드럽게)
+        // 겹침 해소 - 더 강한 보정으로 완전 분리
         float overlap = minDist - distance;
         float totalMass = b1.mass + b2.mass;
-        float separationFactor = 0.5f;  // 한 번에 50%만 해소
+        float separationFactor = 0.8f;  // 80% 해소로 증가 (더 빠른 분리)
         
-        b1.x -= nx * overlap * (b2.mass / totalMass) * separationFactor;
-        b1.y -= ny * overlap * (b2.mass / totalMass) * separationFactor;
-        b2.x += nx * overlap * (b1.mass / totalMass) * separationFactor;
-        b2.y += ny * overlap * (b1.mass / totalMass) * separationFactor;
+        // 위치 보정 (질량 비율에 따라)
+        float correction1 = overlap * (b2.mass / totalMass) * separationFactor;
+        float correction2 = overlap * (b1.mass / totalMass) * separationFactor;
+        
+        b1.x -= nx * correction1;
+        b1.y -= ny * correction1;
+        b2.x += nx * correction2;
+        b2.y += ny * correction2;
         
         // 상대 속도 계산
         float dvx = b2.vx - b1.vx;
@@ -103,12 +107,19 @@ void handleCollision(Ball& b1, Ball& b2) {
         float invMassSum = (1.0f / b1.mass) + (1.0f / b2.mass);
         float impulse = -(1.0f + restitution) * dvn / invMassSum;
         
-        // 속도 업데이트
-        float ballDamping = 0.9f;
+        // 속도 업데이트 (감쇠 감소로 더 자연스러운 움직임)
+        float ballDamping = 0.95f;  // 0.9 -> 0.95로 증가
         b1.vx = (b1.vx - impulse * nx / b1.mass) * ballDamping;
         b1.vy = (b1.vy - impulse * ny / b1.mass) * ballDamping;
         b2.vx = (b2.vx + impulse * nx / b2.mass) * ballDamping;
         b2.vy = (b2.vy + impulse * ny / b2.mass) * ballDamping;
+        
+        // 미세 진동 방지: 매우 작은 속도는 0으로 설정
+        const float minVelocity = 0.01f;  // 0.01 m/s 이하는 무시
+        if (fabs(b1.vx) < minVelocity) b1.vx = 0;
+        if (fabs(b1.vy) < minVelocity) b1.vy = 0;
+        if (fabs(b2.vx) < minVelocity) b2.vx = 0;
+        if (fabs(b2.vy) < minVelocity) b2.vy = 0;
     }
 }
 
@@ -135,26 +146,35 @@ void checkCellPairCollisions(int row1, int col1, int row2, int col2) {
     }
 }
 
-// Grid 기반 충돌 검사
+// Grid 기반 충돌 검사 (반복 수행으로 안정성 향상)
 void checkAllCollisions() {
-    for (int row = 0; row < GRID_ROWS; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            // 1. 같은 cell 내부 충돌
-            checkCellCollisions(row, col);
-            
-            // 2. 인접 cell과의 충돌 (중복 방지를 위해 오른쪽/아래만 체크)
-            if (col + 1 < GRID_COLS) {
-                checkCellPairCollisions(row, col, row, col + 1);  // 오른쪽
+    // 충돌 해결을 2번 반복하여 겹침을 더 확실하게 해소
+    // (특히 여러 공이 동시에 겹칠 때 효과적)
+    for (int iteration = 0; iteration < 2; iteration++) {
+        for (int row = 0; row < GRID_ROWS; row++) {
+            for (int col = 0; col < GRID_COLS; col++) {
+                // 1. 같은 cell 내부 충돌
+                checkCellCollisions(row, col);
+                
+                // 2. 인접 cell과의 충돌 (중복 방지를 위해 오른쪽/아래만 체크)
+                if (col + 1 < GRID_COLS) {
+                    checkCellPairCollisions(row, col, row, col + 1);  // 오른쪽
+                }
+                if (row + 1 < GRID_ROWS) {
+                    checkCellPairCollisions(row, col, row + 1, col);  // 아래
+                }
+                if (row + 1 < GRID_ROWS && col + 1 < GRID_COLS) {
+                    checkCellPairCollisions(row, col, row + 1, col + 1);  // 우하단 대각선
+                }
+                if (row + 1 < GRID_ROWS && col - 1 >= 0) {
+                    checkCellPairCollisions(row, col, row + 1, col - 1);  // 좌하단 대각선
+                }
             }
-            if (row + 1 < GRID_ROWS) {
-                checkCellPairCollisions(row, col, row + 1, col);  // 아래
-            }
-            if (row + 1 < GRID_ROWS && col + 1 < GRID_COLS) {
-                checkCellPairCollisions(row, col, row + 1, col + 1);  // 우하단 대각선
-            }
-            if (row + 1 < GRID_ROWS && col - 1 >= 0) {
-                checkCellPairCollisions(row, col, row + 1, col - 1);  // 좌하단 대각선
-            }
+        }
+        
+        // 두 번째 반복에서는 grid를 다시 빌드 (위치가 변경되었으므로)
+        if (iteration == 0) {
+            buildGrid();
         }
     }
 }

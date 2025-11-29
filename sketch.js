@@ -9,6 +9,9 @@ let currentGravityY = 9.8;  // 실제 중력 가속도 (m/s²)
 // 성능 비교용 변수
 let useWasm = true;
 let physicsTime = 0;
+let jsPhysicsTime = 0;
+let wasmPhysicsTime = 0;
+let benchmarkMode = false;  // T 키로 토글
 
 function setup() {
     frameRate(60);  // 60fps로 안정적인 물리 계산
@@ -20,12 +23,12 @@ function setup() {
         jsPhysics.setCanvasSize(canvasWidth, canvasHeight);
     }
     
-    // 초기 공 몇 개 추가
+    // 초기 공 50개 추가 (대량 테스트)
     setTimeout(() => {
         if (typeof Module !== 'undefined' && Module._addBall) {
-            addRandomBall();
-            addRandomBall();
-            addRandomBall();
+            for (let i = 0; i < 50; i++) {
+                addRandomBall();
+            }
         }
     }, 500);
 }
@@ -65,6 +68,15 @@ function draw() {
     const t1 = performance.now();
     physicsTime = t1 - t0;
     
+    // 벤치마크 모드: 현재 엔진의 시간 기록
+    if (benchmarkMode) {
+        if (useWasm) {
+            wasmPhysicsTime = physicsTime;
+        } else {
+            jsPhysicsTime = physicsTime;
+        }
+    }
+    
     // 공 그리기
     let ballCount = 0;
     if (useWasm) {
@@ -102,27 +114,35 @@ function draw() {
         if (x > -50 && x < canvasWidth + 50 && y > -50 && y < canvasHeight + 50) {
             noStroke();
             
-            // 그림자
-            fill(0, 0, 0, 30);
-            ellipse(x + 3, y + 3, r * 2, r * 2);
-            
-            // 메인 공
-            colorMode(HSB);
-            fill(colors[i].h, colors[i].s, colors[i].b);
-            ellipse(x, y, r * 2, r * 2);
-            
-            // 하이라이트
-            fill(colors[i].h, colors[i].s - 30, colors[i].b + 20, 0.6);
-            ellipse(x - r * 0.3, y - r * 0.3, r * 0.6, r * 0.6);
-            
-            colorMode(RGB);
-            
-            // 공 번호 (너무 많으면 생략)
-            if (ballCount < 200) {
-                fill(255);
-                textAlign(CENTER, CENTER);
-                textSize(r * 0.6);
-                text(i + 1, x, y);
+            // 공이 1000개 이상이면 단순 렌더링 (성능 최적화)
+            if (ballCount >= 1000) {
+                colorMode(HSB);
+                fill(colors[i].h, colors[i].s, colors[i].b);
+                ellipse(x, y, r * 2, r * 2);
+                colorMode(RGB);
+            } else {
+                // 그림자
+                fill(0, 0, 0, 30);
+                ellipse(x + 3, y + 3, r * 2, r * 2);
+                
+                // 메인 공
+                colorMode(HSB);
+                fill(colors[i].h, colors[i].s, colors[i].b);
+                ellipse(x, y, r * 2, r * 2);
+                
+                // 하이라이트
+                fill(colors[i].h, colors[i].s - 30, colors[i].b + 20, 0.6);
+                ellipse(x - r * 0.3, y - r * 0.3, r * 0.6, r * 0.6);
+                
+                colorMode(RGB);
+                
+                // 공 번호 (200개 미만일 때만)
+                if (ballCount < 200) {
+                    fill(255);
+                    textAlign(CENTER, CENTER);
+                    textSize(r * 0.6);
+                    text(i + 1, x, y);
+                }
             }
         }
     }
@@ -152,7 +172,7 @@ function draw() {
     fill(0);
     textSize(15);
     textStyle(NORMAL);
-    text(`Physics Time: ${physicsTime.toFixed(3)} ms`, 25, 55);
+    text(`Physics Time: ${physicsTime.toFixed(2)} ms`, 25, 55);
     
     // FPS 색상 (30 이하 경고)
     let fps = Math.round(frameRate());
@@ -166,7 +186,7 @@ function draw() {
     // 도움말
     fill(80);
     textSize(12);
-    text('M:모드전환 | B:공100개 | C:초기화', 25, 125);
+    text('M:모드전환 | B:공500개 | C:초기화 | T:벤치마크', 25, 125);
     text('방향키:중력조절 | R:리셋 | G:ON/OFF', 25, 140);
     
     // ==================== 중력 나침반 UI (우측 상단) ====================
@@ -219,6 +239,66 @@ function draw() {
         textSize(12);
         text("OFF", compassX, compassY);
     }
+    
+    // ==================== 벤치마크 UI (우측 하단) ====================
+    if (benchmarkMode && typeof jsPhysics !== 'undefined') {
+        const benchX = canvasWidth - 350;
+        const benchY = canvasHeight - 180;
+        const benchW = 330;
+        const benchH = 160;
+        
+        // 배경
+        fill(255, 255, 255, 230);
+        stroke(0);
+        strokeWeight(1);
+        rect(benchX, benchY, benchW, benchH, 10);
+        noStroke();
+        
+        // 제목
+        fill(0);
+        textAlign(CENTER, TOP);
+        textSize(18);
+        textStyle(BOLD);
+        text('⚡ REAL-TIME BENCHMARK', benchX + benchW/2, benchY + 10);
+        
+        // WASM 막대
+        textAlign(LEFT, TOP);
+        textSize(14);
+        textStyle(NORMAL);
+        fill(0, 100, 255);
+        text('WASM:', benchX + 20, benchY + 45);
+        
+        const maxTime = Math.max(wasmPhysicsTime, jsPhysicsTime, 10);
+        const wasmBarW = (wasmPhysicsTime / maxTime) * 200;
+        fill(0, 150, 255, 180);
+        rect(benchX + 20, benchY + 70, wasmBarW, 25, 5);
+        fill(0);
+        text(`${wasmPhysicsTime.toFixed(2)} ms`, benchX + 230, benchY + 75);
+        
+        // JS 막대
+        fill(255, 100, 0);
+        text('JS:', benchX + 20, benchY + 105);
+        
+        const jsBarW = (jsPhysicsTime / maxTime) * 200;
+        fill(255, 150, 0, 180);
+        rect(benchX + 20, benchY + 130, jsBarW, 25, 5);
+        fill(0);
+        text(`${jsPhysicsTime.toFixed(2)} ms`, benchX + 230, benchY + 135);
+        
+        // 성능 비교
+        if (jsPhysicsTime > 0 && wasmPhysicsTime > 0) {
+            const speedup = jsPhysicsTime / wasmPhysicsTime;
+            fill(speedup > 1 ? color(0, 150, 0) : color(255, 0, 0));
+            textAlign(CENTER, TOP);
+            textSize(12);
+            textStyle(BOLD);
+            if (speedup > 1) {
+                text(`WASM is ${speedup.toFixed(1)}x FASTER!`, benchX + benchW/2, benchY + benchH - 20);
+            } else {
+                text(`JS is ${(1/speedup).toFixed(1)}x faster`, benchX + benchW/2, benchY + benchH - 20);
+            }
+        }
+    }
 }
 
 function mousePressed() {
@@ -252,7 +332,7 @@ function addRandomBall() {
 }
 
 function addHugeBalls() {
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 500; i++) {
         addRandomBall();
     }
 }
@@ -359,6 +439,13 @@ function keyPressed() {
         toggleGravity();
     } else if (key === 'm' || key === 'M') { 
         togglePhysicsEngine();
+    } else if (key === 't' || key === 'T') {
+        // 벤치마크 모드 토글
+        benchmarkMode = !benchmarkMode;
+        if (benchmarkMode && typeof jsPhysics === 'undefined') {
+            console.warn('JS 물리 엔진이 없어 벤치마크를 실행할 수 없습니다.');
+            benchmarkMode = false;
+        }
     } 
     
     // 2. 중력 조절 키 (방향키 & R)

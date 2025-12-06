@@ -1,6 +1,9 @@
 # 🎱 WASM Ball Bouncing Physics Engine
 
 WebAssembly와 p5.js를 활용한 실시간 공 튀기기 물리 시뮬레이션입니다.
+
+---
+
 깃허브 페이지: https://programing2-meteor.github.io/wasm-ball-bouncing/
 
 ---

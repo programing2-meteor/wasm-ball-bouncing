@@ -1,7 +1,3 @@
-# WASM 빌드 결과물
-physics.js
-physics.wasm
-
 # 에디터 설정
 .vscode/
 .idea/
